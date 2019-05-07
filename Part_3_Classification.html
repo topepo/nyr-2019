@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Machine Learning with caret - Classification</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Max Kuhn (RStudio)" />
+    <link href="libs/countdown-0.1.0/countdown.css" rel="stylesheet" />
+    <script src="libs/countdown-0.1.0/countdown.js"></script>
+    <link rel="stylesheet" href="mtheme_max.css" type="text/css" />
+    <link rel="stylesheet" href="fonts_mtheme_max.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Machine Learning with caret - Classification
+### Max Kuhn (RStudio)
+
+---
+
+
+
+
+# Outline
+
+* Performance Measures
+* Example Data
+* Classification Trees
+* Bagging
+* Naive Bayes Models
+
+---
+layout: false
+class: inverse, middle, center
+
+# Measuring Performance in Classification
+
+---
+
+# caret and yarstick
+
+`caret` has a [number of functions](https://topepo.github.io/caret/measuring-performance.html) that can be used to compute performance. We'll use the confusion matrix method form the package in these notes. 
+
+The tidymodels `yardstick` package (and others) also has similar functions that work well with `dplyr`. We'll focus on these in this section since they can be used in a more versitile way. 
+
+
+---
+
+# Illustrative Example  &lt;img src="images/yardstick.png" class="title-hex"&gt;
+
+`yardstick` contains another test set example in a data frame called `two_class_example`:
+
+
+
+```r
+library(tidymodels)
+two_class_example %&gt;% head(4)
+```
+
+```
+##    truth  Class1 Class2 predicted
+## 1 Class2 0.00359  0.996    Class2
+## 2 Class1 0.67862  0.321    Class1
+## 3 Class2 0.11089  0.889    Class2
+## 4 Class1 0.73516  0.265    Class1
+```
+
+Both `truth` and `predicted` are factors with the same levels. The other two columns represent _class probabilities_. 
+
+This reflects that most classification models can generate "hard" and "soft" predictions for models. 
+
+The class predictions are usually created by thresholding some numeric output of the model (e.g. a class probability) or by choosing the largest value.  
+
+
+---
+
+# Class Prediction Metrics
+
+.pull-left[
+With class predictions, a common summary method is to produce a _confusion matrix_ which is a simple cross-tabulation between the observed and predicted classes:
+
+
+```r
+two_class_example %&gt;% 
+	conf_mat(truth = truth, estimate = predicted)
+```
+
+```
+##           Truth
+## Prediction Class1 Class2
+##     Class1    227     50
+##     Class2     31    192
+```
+
+These can be visualized using [mosaic plots](https://en.wikipedia.org/wiki/Mosaic_plot). 
+
+]
+.pull-right[
+Accuracy is the most obvious metric for characterizing the performance of models.
+
+
+```r
+two_class_example %&gt;% 
+	accuracy(truth = truth, estimate = predicted)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.838
+```
+
+However, it suffers when there is a _class imbalance_; suppose 95% of the data have a specific class. 95% accuracy can be achieved by predicting samples to be the majority class.  
+
+There are measures that correct for the natural event rate, such as [Cohen's Kappa](https://en.wikipedia.org/wiki/Cohen%27s_kappa).
+]
+
+
+---
+
+# Confusion Matrices
+
+
+.pull-left[
+`caret` has a function that computes a number of metrics along with the confusion matrix. Optional arguments:
+
+* `positive` to designate the level of the first event
+
+* `mode` for sens/spec versus prec/recall
+
+As you'll see in a bit, it can also get the _resampled_ confusion matrices. 
+
+
+```r
+confusionMatrix(two_class_example$predicted, 
+                two_class_example$truth)
+```
+
+
+
+]
+.pull-right[
+
+.code60[
+
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction Class1 Class2
+##     Class1    227     50
+##     Class2     31    192
+##                                         
+##                Accuracy : 0.838         
+##                  95% CI : (0.803, 0.869)
+##     No Information Rate : 0.516         
+##     P-Value [Acc &gt; NIR] : &lt;2e-16        
+##                                         
+##                   Kappa : 0.675         
+##  Mcnemar's Test P-Value : 0.0455        
+##                                         
+##             Sensitivity : 0.880         
+##             Specificity : 0.793         
+##          Pos Pred Value : 0.819         
+##          Neg Pred Value : 0.861         
+##              Prevalence : 0.516         
+##          Detection Rate : 0.454         
+##    Detection Prevalence : 0.554         
+##       Balanced Accuracy : 0.837         
+##                                         
+##        'Positive' Class : Class1        
+## 
+```
+
+]
+
+]
+
+---
+
+# Two Classes
+
+
+There are a number of specialized metrics that can be used when there are two classes. Usually, one of these classes can be considered the _event of interest_ or the _positive class_. 
+
+One common way to think about performance is to consider false negatives and false positives. 
+
+* The sensitivity is the _true positive rate_ (out of all of the actual positives, how many did you get right?).
+
+* The specificity is the rate of correctly predicted negatives, or 1 - _false positive rate_ (out of all the actual negatives, how many did you get right?). 
+
+From this, assuming that `Class1` is the event of interest: 
+
+ .pull-left[
+
+```
+##           Truth
+## Prediction Class1 Class2
+##     Class1    227     50
+##     Class2     31    192
+```
+]
+.pull-right[
+ sensitivity = 227/(227 + 31)  = 0.88
+
+ specificity = 192/(192 + 50)  = 0.79
+]
+
+
+---
+
+# Conditional and Unconditional Measures
+
+Sensitivity and specificity can be computed from `sens()` and `spec()`, respectively. 
+
+It should be noted that these are _conditional measures_ since we need to know the true outcome. 
+
+The event rate is the _prevalence_ (or the Bayesian _prior_). Sensitivity and specificity are analogous to the _likelihood values_. 
+
+There are _unconditional_ analogs to the _posterior values_ called the positive predictive values and the negative predicted values. 
+
+A variety of other measures are available for two class systems, especially for _information retrieval_.  
+
+One thing to consider: what happens if our **threshold to call a sample an event is not optimal**? 
+
+
+---
+
+# Changing the Probability Threshold
+
+.pull-left[
+For two classes, the 50% cutoff is customary; if the probability of class #1 is &gt;= 50%, they would be labelled as `Class1`. 
+
+
+What happens when you change the cutoff? 
+
+* Increasing it makes it harder to be called `Class1` `\(\Rightarrow\)` fewer predicted events, specificity `\(\uparrow\)`, sensitivity `\(\downarrow\)` 
+  
+
+* Decreasing the cutoff makes it easier to be called `Class1` `\(\Rightarrow\)` more predicted events, specificity `\(\downarrow\)`, sensitivity `\(\uparrow\)`  
+
+With two classes, the **Receiver Operating Characteristic (ROC) curve** can be used to estimate performance using a combination of sensitivity and specificity.  
+
+]
+.pull-right[
+  
+To create the curve, many alternative cutoffs are evaluated. 
+
+For each cutoff, we calculate the sensitivity and specificity.
+
+The ROC curve plots the sensitivity (eg. true positive rate) versus 1 - specificity (eg. the false positive rate).
+  
+The area under the ROC curve is a common metric of performance.  
+]
+ 
+  
+---
+
+# The Receiver Operating Characteristic (ROC) Curve  &lt;img src="images/dplyr.png" class="title-hex"&gt;
+
+.pull-left[
+
+.code90[
+
+
+```r
+roc_obj &lt;- 
+  two_class_example %&gt;% 
+  roc_curve(truth, Class1)
+```
+
+```r
+two_class_example %&gt;% roc_auc(truth, Class1)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 roc_auc binary         0.939
+```
+
+```r
+# (there's also pr_curve and)
+two_class_example %&gt;% pr_auc(truth, Class1)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 pr_auc  binary         0.943
+```
+
+```r
+autoplot(roc_obj) + thm
+```
+
+]
+
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/roc-plot-1.svg" width="100%" style="display: block; margin: auto;" /&gt;
+]
+
+  
+---
+
+# Changing the Threshold 
+
+
+
+&lt;img src="roc-anime-1.gif" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# The Receiver Operating Characteristic (ROC) Curve 
+
+The ROC curve has some major advantages:
+
+ * It can allow models to be optimized for performance before a definitive cutoff is determined.
+ 
+ * It is _robust_ to class imbalances; no matter the event rate, it does a good job at characterizing model performance. 
+ 
+ * The ROC curve can be used to pick an optimal cutoff based on the trade-offs between the types of errors that can occur. 
+
+When there are two classes, it is advisable to focus on the area under the ROC curve instead of sensitivity and specificity. 
+
+Once an acceptable model is determined, a proper cutoff can be determined. 
+
+
+---
+
+# Customer Churn Data
+
+.pull-left[
+The data are from [Kaggle](https://www.kaggle.com/shrutimechlearn/churn-modelling) and include a sample of 10000 customers. 
+
+The data files is included in the workshop's GitHub repo.
+
+The data are most likely simulated. There are 10 predictors, including numeric and categorical fields:
+]
+.pull-right[
+
+```r
+load("churn.RData")
+str(churn)
+```
+
+```
+## Classes 'tbl_df', 'tbl' and 'data.frame':	10000 obs. of  11 variables:
+##  $ credit_score: int  619 608 502 699 850 645 822 376 501 684 ...
+##  $ geography   : Factor w/ 3 levels "France","Germany",..: 1 3 1 1 3 3 1 2 1 1 ...
+##  $ gender      : Factor w/ 2 levels "Female","Male": 1 1 1 1 1 2 2 1 2 2 ...
+##  $ age         : int  42 41 42 39 43 44 50 29 44 27 ...
+##  $ tenure      : int  2 1 8 1 2 8 7 4 4 2 ...
+##  $ balance     : num  0 83808 159661 0 125511 ...
+##  $ num_prod    : int  1 1 3 2 1 2 2 4 2 1 ...
+##  $ credit_card : Factor w/ 2 levels "no","yes": 2 1 2 1 2 2 2 2 1 2 ...
+##  $ active      : Factor w/ 2 levels "no","yes": 2 2 1 1 2 1 2 1 2 2 ...
+##  $ salary      : num  101349 112543 113932 93827 79084 ...
+##  $ class       : Factor w/ 2 levels "yes","no": 1 2 1 2 2 1 2 1 2 2 ...
+```
+
+```r
+table(churn$class)
+```
+
+```
+## 
+##  yes   no 
+## 2037 7963
+```
+]
+
+
+---
+
+# Splitting the Churn Data
+
+Let's split the data such that we use 75% for training and the remainder for testing.
+
+.code80[
+
+
+```r
+library(caret)
+
+set.seed(394)
+churn_split &lt;- createDataPartition(churn$class, list = FALSE, p = 3/4)
+
+churn_train &lt;- churn[ churn_split,]
+churn_test  &lt;- churn[-churn_split,]
+```
+
+]
+
+---
+
+# Dealing with Class Imbalances
+
+In our data, only 20.4% of the customers churned. This complicates the analysis since many models will overfit to the majority class.
+
+There are two main strategies to deal with this:
+
+ * _Cost-sensitive learning_ where a higher cost is attached to the minority classes. In this way, the fitting process puts more emphasis on those samples. 
+ 
+ * _Sampling procedures_ that modify the rows of the data to re-balance the training set. 
+ 
+Cost-sensitive models tend to only produce hard classifications so we will focus on the latter. 
+
+
+---
+
+# Class Imbalance Sampling
+
+There are a variety of methods for subsampling the data. Some exclude or replicate rows in the training set while others try to _synthesize_ new data points to balance the classes. 
+
+The simplest method for dealing with the problem is to _down-sample_ the data to make the number of churning customers and retained customers the same. 
+
+While it seems like throwing away most of the data is a bad idea, it tends to produce less pathological distributions of the class probabilities and _might_ improve the ROC curve. 
+
+
+It is critical that:
+
+ * the sampling should be done _inside of resampling_. Otherwise, the [performance estimates can be optimistic](https://topepo.github.io/caret/subsampling-for-class-imbalances.html#resampling). 
+ * these sampling methods take place on the analysis set and not the assessment set.
+
+Note that for a simple logistic regression model, this mainly has the effect of changing the intercept. 
+
+
+
+---
+
+# Probability Estimates (A Different Data Set)
+
+
+
+&lt;img src="Part_3_Classification_files/figure-html/calib-hist-1.svg" width="75%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Probability Estimates (A Different Data Set)
+
+&lt;img src="Part_3_Classification_files/figure-html/calib-roc-1.svg" width="50%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Resampling and Analysis Strategy
+
+.pull-left[
+If we down-sample the data, the analysis set will consist of 0 customers (equally balanced). We'll again use 10-fold CV to resample the data. 
+
+Within each resample, the analysis data are down-sampled and the assessment sets are left alone.
+
+
+The number of churning customers held-out would be about 152 and this should be sufficient to compute sensitivity.  
+]
+.pull-right[
+The models will be optimized on the area under the ROC curve. 
+
+
+```r
+library(caret)
+ctrl &lt;- trainControl(
+	method = "cv",
+	# Also predict the probabilities
+	classProbs = TRUE,
+	# Compute the ROC AUC as well as the sens and  
+	# spec from the default 50% cutoff. The 
+	# function `twoClassSummary` will produce those. 
+	summaryFunction = twoClassSummary,
+	savePredictions = "final",
+	sampling = "down"
+)
+```
+]
+
+
+---
+layout: false
+class: inverse, middle, center
+
+# Classification Trees
+
+
+---
+
+# Classification Trees
+
+Tree-based classifiers conduct exhaustive searches of the predictors to find the best split of the data to create two subsets. 
+
+"Best", in most cases, means that the class distribution is as _pure_ as possible in the subsets (i.e. is mostly one class). 
+
+There are many different types of classification trees, including [conditional inference trees](https://cran.r-project.org/web/packages/party/index.html), [C5.0](https://cran.r-project.org/web/packages/C50/index.html), [Bayesian additive regression trees](https://cran.r-project.org/web/packages/BayesTree/index.html), [globally optimal trees](https://cran.r-project.org/web/packages/evtree/index.html), [CART](https://cran.r-project.org/web/packages/rpart/index.html), and others. 
+
+We'll focus on CART via the `rpart` package for these notes.  
+
+
+---
+
+# Some Possible Splits - Which One is Better? 
+
+The data have been down-sampled so that classes have equal frequencies. 
+
+.pull-left[
+&lt;img src="Part_3_Classification_files/figure-html/cart-orientation-split-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+]
+.pull-right[
+&lt;img src="Part_3_Classification_files/figure-html/cart-where-split-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+]
+
+
+---
+
+# Best Initial Split 
+
+
+.pull-left[
+The best first split in the data used the customer's age to try to predict the outcome. 
+
+Note that there are more older folks in one of the splits and these customers tend to have a higher churn rate. 
+
+If we were to stop here, the data in the _terminal nodes_ would be used to assign the classes and the corresponding probability estimates. 
+
+A tree with a single split is sometimes called a _stump_. 
+
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/cart-age-split-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+
+]
+
+
+---
+
+# The Next Split
+
+.pull-left[
+Once the initial split is made, the model will then split the resulting two data sets using new searches in those _leaves_. 
+
+The process continues until there are not enough data points left to accurately split or a pre-defined split limit has been reached.  
+
+This is the _tree growing_ process and, once complete, most tree-based models begin to _prune_ the trees using some method that balances complexity with performance. 
+]
+.pull-right[
+&lt;img src="Part_3_Classification_files/figure-html/cart-split-2-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+]
+
+
+
+---
+
+# Indexing Complexity
+
+
+How do we index the possible trees in terms of complexity?  
+
+There's a lot of cool math here that yield the _cost-complexity parameter_ (aka C&lt;sub&gt;p&lt;/sub&gt;). 
+
+C&lt;sub&gt;p&lt;/sub&gt; is a component of a _penalized_ loss function. For example, in regression, this might be the RMSE plus some multiplier of the number of terminal nodes. 
+
+C&lt;sub&gt;p&lt;/sub&gt; is the penalty and thus a tuning parameter. 
+
+ * C&lt;sub&gt;p&lt;/sub&gt; = 0 is the largest possible tree (i.e. no penalty for complexity) while 
+ * Values around 0.1 usually correspond to a stump. 
+
+In effect, C&lt;sub&gt;p&lt;/sub&gt; prunes the model from bottom to top. 
+
+For a given data set, there is a discrete set of possible C&lt;sub&gt;p&lt;/sub&gt; values. I think of them as being on the log&lt;sub&gt;10&lt;/sub&gt; scale. 
+
+
+
+---
+
+# 1-Standard Error Pruning
+
+.pull-left[
+CART has an _internal_ pruning process that uses an internal CV procedure. 
+
+"One standard error" pruning finds the simplest tree within 1 SE of the numerically optimal method (see right side).
+
+However, this uses the error rate to optimize the tree. 
+
+With our class imbalance, should we _externally_ (manually) tune using the area under the ROC curve? 
+
+]
+.pull-right[
+
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#yrlihhlurr .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #000000;
+  font-size: 16px;
+  background-color: #FFFFFF;
+  /* table.background.color */
+  width: auto;
+  /* table.width */
+  border-top-style: solid;
+  /* table.border.top.style */
+  border-top-width: 2px;
+  /* table.border.top.width */
+  border-top-color: #A8A8A8;
+  /* table.border.top.color */
+}
+
+#yrlihhlurr .gt_heading {
+  background-color: #FFFFFF;
+  /* heading.background.color */
+  border-bottom-color: #FFFFFF;
+}
+
+#yrlihhlurr .gt_title {
+  color: #000000;
+  font-size: 125%;
+  /* heading.title.font.size */
+  padding-top: 4px;
+  /* heading.top.padding */
+  padding-bottom: 1px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#yrlihhlurr .gt_subtitle {
+  color: #000000;
+  font-size: 85%;
+  /* heading.subtitle.font.size */
+  padding-top: 1px;
+  padding-bottom: 4px;
+  /* heading.bottom.padding */
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#yrlihhlurr .gt_bottom_border {
+  border-bottom-style: solid;
+  /* heading.border.bottom.style */
+  border-bottom-width: 2px;
+  /* heading.border.bottom.width */
+  border-bottom-color: #A8A8A8;
+  /* heading.border.bottom.color */
+}
+
+#yrlihhlurr .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#yrlihhlurr .gt_col_heading {
+  color: #000000;
+  background-color: #FFFFFF;
+  /* column_labels.background.color */
+  font-size: 16px;
+  /* column_labels.font.size */
+  font-weight: initial;
+  /* column_labels.font.weight */
+  vertical-align: middle;
+  padding: 10px;
+  margin: 10px;
+}
+
+#yrlihhlurr .gt_sep_right {
+  border-right: 5px solid #FFFFFF;
+}
+
+#yrlihhlurr .gt_group_heading {
+  padding: 8px;
+  color: #000000;
+  background-color: #FFFFFF;
+  /* stub_group.background.color */
+  font-size: 16px;
+  /* stub_group.font.size */
+  font-weight: initial;
+  /* stub_group.font.weight */
+  border-top-style: solid;
+  /* stub_group.border.top.style */
+  border-top-width: 2px;
+  /* stub_group.border.top.width */
+  border-top-color: #A8A8A8;
+  /* stub_group.border.top.color */
+  border-bottom-style: solid;
+  /* stub_group.border.bottom.style */
+  border-bottom-width: 2px;
+  /* stub_group.border.bottom.width */
+  border-bottom-color: #A8A8A8;
+  /* stub_group.border.bottom.color */
+  vertical-align: middle;
+}
+
+#yrlihhlurr .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #000000;
+  background-color: #FFFFFF;
+  /* stub_group.background.color */
+  font-size: 16px;
+  /* stub_group.font.size */
+  font-weight: initial;
+  /* stub_group.font.weight */
+  border-top-style: solid;
+  /* stub_group.border.top.style */
+  border-top-width: 2px;
+  /* stub_group.border.top.width */
+  border-top-color: #A8A8A8;
+  /* stub_group.border.top.color */
+  border-bottom-style: solid;
+  /* stub_group.border.bottom.style */
+  border-bottom-width: 2px;
+  /* stub_group.border.bottom.width */
+  border-bottom-color: #A8A8A8;
+  /* stub_group.border.bottom.color */
+  vertical-align: middle;
+}
+
+#yrlihhlurr .gt_striped {
+  background-color: #f2f2f2;
+}
+
+#yrlihhlurr .gt_row {
+  padding: 10px;
+  /* row.padding */
+  margin: 10px;
+  vertical-align: middle;
+}
+
+#yrlihhlurr .gt_stub {
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #A8A8A8;
+  padding-left: 12px;
+}
+
+#yrlihhlurr .gt_stub.gt_row {
+  background-color: #FFFFFF;
+}
+
+#yrlihhlurr .gt_summary_row {
+  background-color: #FFFFFF;
+  /* summary_row.background.color */
+  padding: 6px;
+  /* summary_row.padding */
+  text-transform: inherit;
+  /* summary_row.text_transform */
+}
+
+#yrlihhlurr .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+}
+
+#yrlihhlurr .gt_table_body {
+  border-top-style: solid;
+  /* field.border.top.style */
+  border-top-width: 2px;
+  /* field.border.top.width */
+  border-top-color: #A8A8A8;
+  /* field.border.top.color */
+  border-bottom-style: solid;
+  /* field.border.bottom.style */
+  border-bottom-width: 2px;
+  /* field.border.bottom.width */
+  border-bottom-color: #A8A8A8;
+  /* field.border.bottom.color */
+}
+
+#yrlihhlurr .gt_footnote {
+  font-size: 90%;
+  /* footnote.font.size */
+  padding: 4px;
+  /* footnote.padding */
+}
+
+#yrlihhlurr .gt_sourcenote {
+  font-size: 90%;
+  /* sourcenote.font.size */
+  padding: 4px;
+  /* sourcenote.padding */
+}
+
+#yrlihhlurr .gt_center {
+  text-align: center;
+}
+
+#yrlihhlurr .gt_left {
+  text-align: left;
+}
+
+#yrlihhlurr .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#yrlihhlurr .gt_font_normal {
+  font-weight: normal;
+}
+
+#yrlihhlurr .gt_font_bold {
+  font-weight: bold;
+}
+
+#yrlihhlurr .gt_font_italic {
+  font-style: italic;
+}
+
+#yrlihhlurr .gt_super {
+  font-size: 65%;
+}
+
+#yrlihhlurr .gt_footnote_glyph {
+  font-style: italic;
+  font-size: 65%;
+}
+</style>
+<div id="yrlihhlurr" style="overflow-x:auto;"><!--gt table start-->
+<table class='gt_table'>
+<tr>
+<th class='gt_col_heading gt_center' rowspan='2' colspan='1'>Cp</th>
+<th class='gt_col_heading gt_center' rowspan='2' colspan='1'>Splits</th>
+<th class='gt_col_heading gt_column_spanner gt_center' rowspan='1' colspan='3'>Cross-Validation</th>
+</tr>
+<tr>
+<th class='gt_col_heading gt_right' rowspan='1' colspan='1'>Incorrect (normalized)</th>
+<th class='gt_col_heading gt_right' rowspan='1' colspan='1'>Std Err</th>
+<th class='gt_col_heading gt_NA' rowspan='1' colspan='1'>Incorr + Std Err</th>
+</tr>
+<tbody class='gt_table_body'>
+<tr>
+<td class='gt_row gt_right'>0.091</td>
+<td class='gt_row gt_right'>1</td>
+<td class='gt_row gt_right'>0.768</td>
+<td class='gt_row gt_right'>0.0693</td>
+<td class='gt_row gt_right'>0.837</td>
+</tr>
+<tr>
+<td class='gt_row gt_right gt_striped'>0.051</td>
+<td class='gt_row gt_right gt_striped'>3</td>
+<td class='gt_row gt_right gt_striped'>0.788</td>
+<td class='gt_row gt_right gt_striped'>0.0697</td>
+<td class='gt_row gt_right gt_striped'>0.858</td>
+</tr>
+<tr>
+<td class='gt_row gt_right'>0.040</td>
+<td class='gt_row gt_right'>4</td>
+<td class='gt_row gt_right'>0.737</td>
+<td class='gt_row gt_right'>0.0688</td>
+<td class='gt_row gt_right'>0.806</td>
+</tr>
+<tr>
+<td class='gt_row gt_right gt_striped' style="color:blue;font-weight:bold;">0.030</td>
+<td class='gt_row gt_right gt_striped' style="color:blue;font-weight:bold;">5</td>
+<td class='gt_row gt_right gt_striped' style="color:blue;font-weight:bold;">0.707</td>
+<td class='gt_row gt_right gt_striped' style="color:blue;font-weight:bold;">0.0681</td>
+<td class='gt_row gt_right gt_striped' style="color:blue;font-weight:bold;">0.775</td>
+</tr>
+<tr>
+<td class='gt_row gt_right'>0.020</td>
+<td class='gt_row gt_right'>7</td>
+<td class='gt_row gt_right'>0.667</td>
+<td class='gt_row gt_right'>0.0672</td>
+<td class='gt_row gt_right'>0.734</td>
+</tr>
+<tr>
+<td class='gt_row gt_right gt_striped' style="color:darkred;font-weight:bold;">0.000</td>
+<td class='gt_row gt_right gt_striped' style="color:darkred;font-weight:bold;">10</td>
+<td class='gt_row gt_right gt_striped' style="color:darkred;font-weight:bold;">0.657</td>
+<td class='gt_row gt_right gt_striped' style="color:darkred;font-weight:bold;">0.0669</td>
+<td class='gt_row gt_right gt_striped' style="color:darkred;font-weight:bold;">0.723</td>
+</tr>
+</tbody>
+</table>
+<!--gt table end-->
+</div>
+
+]
+
+
+---
+
+# Classification Trees
+
+
+.pull-left[
+`caret` contains multiple method for training CART models. 
+
+We'll go with `method = "rpart"` which uses `cp` as the tuning parameter. 
+
+Also, we'll use the non-formula interface so that the factor predictors are **not converted to indicator variables**. 
+
+
+]
+.pull-right[
+
+```r
+set.seed(5515)
+cart_mod &lt;- train(
+	x = churn_train %&gt;% dplyr::select(-class), 
+	y = churn_train$class,
+	method = "rpart",
+	metric = "ROC",
+	tuneLength = 20,
+	trControl = ctrl
+)
+```
+
+For the final model, there are 94 terminal nodes and thus 94 possible probability values. 
+
+]
+
+
+
+---
+
+# Optimized CART Model - Are Trees Interpretable? 
+
+.code50[
+
+```r
+cart_mod$finalModel
+```
+
+```
+## n= 3056 
+## 
+## node), split, n, loss, yval, (yprob)
+##       * denotes terminal node
+## 
+##      1) root 3056 1530 yes (0.5000 0.5000)  
+##        2) age&gt;=42.5 1238  327 yes (0.7359 0.2641)  
+##          4) active=no 693  110 yes (0.8413 0.1587)  
+##            8) age&gt;=50.5 285   11 yes (0.9614 0.0386) *
+##            9) age&lt; 50.5 408   99 yes (0.7574 0.2426)  
+##             18) num_prod&lt; 1.5 279   48 yes (0.8280 0.1720)  
+##               36) geography=Germany 114    9 yes (0.9211 0.0789) *
+##               37) geography=France,Spain 165   39 yes (0.7636 0.2364)  
+##                 74) balance&lt; 9.73e+04 97   15 yes (0.8454 0.1546) *
+##                 75) balance&gt;=9.73e+04 68   24 yes (0.6471 0.3529)  
+##                  150) balance&gt;=1.62e+05 15    0 yes (1.0000 0.0000) *
+##                  151) balance&lt; 1.62e+05 53   24 yes (0.5472 0.4528)  
+##                    302) tenure&lt; 2.5 12    1 yes (0.9167 0.0833) *
+##                    303) tenure&gt;=2.5 41   18 no (0.4390 0.5610)  
+##                      606) credit_score&lt; 646 26   10 yes (0.6154 0.3846)  
+##                       1212) credit_score&gt;=594 11    2 yes (0.8182 0.1818) *
+##                       1213) credit_score&lt; 594 15    7 no (0.4667 0.5333) *
+##                      607) credit_score&gt;=646 15    2 no (0.1333 0.8667) *
+##             19) num_prod&gt;=1.5 129   51 yes (0.6047 0.3953)  
+##               38) num_prod&gt;=2.5 37    0 yes (1.0000 0.0000) *
+##               39) num_prod&lt; 2.5 92   41 no (0.4457 0.5543)  
+##                 78) balance&gt;=8.55e+04 49   21 yes (0.5714 0.4286)  
+##                  156) age&gt;=44.5 31    9 yes (0.7097 0.2903) *
+##                  157) age&lt; 44.5 18    6 no (0.3333 0.6667) *
+##                 79) balance&lt; 8.55e+04 43   13 no (0.3023 0.6977)  
+##                  158) tenure&gt;=1.5 36   13 no (0.3611 0.6389)  
+##                    316) credit_card=no 10    4 yes (0.6000 0.4000) *
+##                    317) credit_card=yes 26    7 no (0.2692 0.7308) *
+##                  159) tenure&lt; 1.5 7    0 no (0.0000 1.0000) *
+##          5) active=yes 545  217 yes (0.6018 0.3982)  
+##           10) age&lt; 65.5 485  168 yes (0.6536 0.3464)  
+##             20) num_prod&gt;=2.5 45    0 yes (1.0000 0.0000) *
+##             21) num_prod&lt; 2.5 440  168 yes (0.6182 0.3818)  
+##               42) num_prod&lt; 1.5 282   75 yes (0.7340 0.2660)  
+##                 84) geography=Germany 104   16 yes (0.8462 0.1538) *
+##                 85) geography=France,Spain 178   59 yes (0.6685 0.3315)  
+##                  170) balance&lt; 7.15e+04 72   13 yes (0.8194 0.1806) *
+##                  171) balance&gt;=7.15e+04 106   46 yes (0.5660 0.4340)  
+##                    342) balance&gt;=1.67e+05 9    0 yes (1.0000 0.0000) *
+##                    343) balance&lt; 1.67e+05 97   46 yes (0.5258 0.4742)  
+##                      686) gender=Female 44   16 yes (0.6364 0.3636)  
+##                       1372) credit_score&lt; 667 26    6 yes (0.7692 0.2308) *
+##                       1373) credit_score&gt;=667 18    8 no (0.4444 0.5556) *
+##                      687) gender=Male 53   23 no (0.4340 0.5660)  
+##                       1374) salary&lt; 2.95e+04 7    2 yes (0.7143 0.2857) *
+##                       1375) salary&gt;=2.95e+04 46   18 no (0.3913 0.6087)  
+##                         2750) salary&gt;=1.01e+05 32   16 yes (0.5000 0.5000)  
+##                           5500) geography=Spain 11    2 yes (0.8182 0.1818) *
+##                           5501) geography=France 21    7 no (0.3333 0.6667) *
+##                         2751) salary&lt; 1.01e+05 14    2 no (0.1429 0.8571) *
+##               43) num_prod&gt;=1.5 158   65 no (0.4114 0.5886)  
+##                 86) balance&gt;=2.35e+04 95   40 yes (0.5789 0.4211)  
+##                  172) tenure&lt; 6.5 65   21 yes (0.6769 0.3231)  
+##                    344) salary&lt; 1.25e+05 44    9 yes (0.7955 0.2045)  
+##                      688) balance&lt; 1.39e+05 37    5 yes (0.8649 0.1351) *
+##                      689) balance&gt;=1.39e+05 7    3 no (0.4286 0.5714) *
+##                    345) salary&gt;=1.25e+05 21    9 no (0.4286 0.5714)  
+##                      690) age&gt;=46.5 13    4 yes (0.6923 0.3077) *
+##                      691) age&lt; 46.5 8    0 no (0.0000 1.0000) *
+##                  173) tenure&gt;=6.5 30   11 no (0.3667 0.6333)  
+##                    346) gender=Female 16    7 yes (0.5625 0.4375) *
+##                    347) gender=Male 14    2 no (0.1429 0.8571) *
+##                 87) balance&lt; 2.35e+04 63   10 no (0.1587 0.8413) *
+##           11) age&gt;=65.5 60   11 no (0.1833 0.8167)  
+##             22) geography=Germany 11    5 yes (0.5455 0.4545) *
+##             23) geography=France,Spain 49    5 no (0.1020 0.8980) *
+##        3) age&lt; 42.5 1818  617 no (0.3394 0.6606)  
+##          6) num_prod&gt;=2.5 103   11 yes (0.8932 0.1068) *
+##          7) num_prod&lt; 2.5 1715  525 no (0.3061 0.6939)  
+##           14) num_prod&lt; 1.5 971  420 no (0.4325 0.5675)  
+##             28) geography=Germany 281  112 yes (0.6014 0.3986)  
+##               56) balance&gt;=7.84e+04 266   98 yes (0.6316 0.3684)  
+##                112) age&gt;=38.5 84   17 yes (0.7976 0.2024)  
+##                  224) balance&lt; 1.5e+05 75   12 yes (0.8400 0.1600) *
+##                  225) balance&gt;=1.5e+05 9    4 no (0.4444 0.5556) *
+##                113) age&lt; 38.5 182   81 yes (0.5549 0.4451)  
+##                  226) active=no 99   35 yes (0.6465 0.3535)  
+##                    452) balance&gt;=9.96e+04 87   27 yes (0.6897 0.3103)  
+##                      904) balance&lt; 1.45e+05 70   17 yes (0.7571 0.2429)  
+##                       1808) age&gt;=33.5 29    4 yes (0.8621 0.1379) *
+##                       1809) age&lt; 33.5 41   13 yes (0.6829 0.3171)  
+##                         3618) credit_score&gt;=702 14    2 yes (0.8571 0.1429) *
+##                         3619) credit_score&lt; 702 27   11 yes (0.5926 0.4074)  
+##                           7238) credit_score&lt; 623 16    4 yes (0.7500 0.2500) *
+##                           7239) credit_score&gt;=623 11    4 no (0.3636 0.6364) *
+##                      905) balance&gt;=1.45e+05 17    7 no (0.4118 0.5882) *
+##                    453) balance&lt; 9.96e+04 12    4 no (0.3333 0.6667) *
+##                  227) active=yes 83   37 no (0.4458 0.5542)  
+##                    454) age&gt;=30.5 57   27 yes (0.5263 0.4737)  
+##                      908) credit_score&lt; 530 8    1 yes (0.8750 0.1250) *
+##                      909) credit_score&gt;=530 49   23 no (0.4694 0.5306)  
+##                       1818) credit_score&gt;=640 38   17 yes (0.5526 0.4474)  
+##                         3636) tenure&gt;=1.5 31   11 yes (0.6452 0.3548)  
+##                           7272) credit_score&lt; 730 14    2 yes (0.8571 0.1429) *
+##                           7273) credit_score&gt;=730 17    8 no (0.4706 0.5294) *
+##                         3637) tenure&lt; 1.5 7    1 no (0.1429 0.8571) *
+##                       1819) credit_score&lt; 640 11    2 no (0.1818 0.8182) *
+##                    455) age&lt; 30.5 26    7 no (0.2692 0.7308)  
+##                      910) balance&gt;=1.31e+05 7    3 yes (0.5714 0.4286) *
+##                      911) balance&lt; 1.31e+05 19    3 no (0.1579 0.8421) *
+##               57) balance&lt; 7.84e+04 15    1 no (0.0667 0.9333) *
+##             29) geography=France,Spain 690  251 no (0.3638 0.6362)  
+##               58) balance&lt; 7.42e+04 218   97 yes (0.5550 0.4450)  
+##                116) gender=Female 106   37 yes (0.6509 0.3491)  
+##                  232) credit_score&gt;=522 95   30 yes (0.6842 0.3158)  
+##                    464) balance&lt; 6.27e+04 86   24 yes (0.7209 0.2791)  
+##                      928) credit_score&gt;=759 11    0 yes (1.0000 0.0000) *
+##                      929) credit_score&lt; 759 75   24 yes (0.6800 0.3200)  
+##                       1858) credit_score&lt; 674 45   10 yes (0.7778 0.2222) *
+##                       1859) credit_score&gt;=674 30   14 yes (0.5333 0.4667)  
+##                         3718) salary&lt; 4.5e+04 10    2 yes (0.8000 0.2000) *
+##                         3719) salary&gt;=4.5e+04 20    8 no (0.4000 0.6000) *
+##                    465) balance&gt;=6.27e+04 9    3 no (0.3333 0.6667) *
+##                  233) credit_score&lt; 522 11    4 no (0.3636 0.6364) *
+##                117) gender=Male 112   52 no (0.4643 0.5357)  
+##                  234) credit_score&lt; 480 7    1 yes (0.8571 0.1429) *
+##                  235) credit_score&gt;=480 105   46 no (0.4381 0.5619)  
+##                    470) balance&gt;=6.57e+04 8    2 yes (0.7500 0.2500) *
+##                    471) balance&lt; 6.57e+04 97   40 no (0.4124 0.5876)  
+##                      942) salary&gt;=1.7e+05 7    2 yes (0.7143 0.2857) *
+##                      943) salary&lt; 1.7e+05 90   35 no (0.3889 0.6111)  
+##                       1886) tenure&gt;=2.5 73   32 no (0.4384 0.5616)  
+##                         3772) credit_score&gt;=738 9    3 yes (0.6667 0.3333) *
+##                         3773) credit_score&lt; 738 64   26 no (0.4062 0.5938)  
+##                           7546) salary&gt;=4.99e+04 44   22 yes (0.5000 0.5000)  
+##                            15092) salary&lt; 7.68e+04 10    2 yes (0.8000 0.2000) *
+##                            15093) salary&gt;=7.68e+04 34   14 no (0.4118 0.5882)  
+##                              30186) salary&gt;=9.53e+04 26   13 yes (0.5000 0.5000)  
+##                                60372) salary&lt; 1.44e+05 16    5 yes (0.6875 0.3125) *
+##                                60373) salary&gt;=1.44e+05 10    2 no (0.2000 0.8000) *
+##                              30187) salary&lt; 9.53e+04 8    1 no (0.1250 0.8750) *
+##                           7547) salary&lt; 4.99e+04 20    4 no (0.2000 0.8000) *
+##                       1887) tenure&lt; 2.5 17    3 no (0.1765 0.8235) *
+##               59) balance&gt;=7.42e+04 472  130 no (0.2754 0.7246)  
+##                118) age&gt;=39.5 85   42 no (0.4941 0.5059)  
+##                  236) salary&gt;=9.35e+04 54   20 yes (0.6296 0.3704)  
+##                    472) salary&lt; 1.04e+05 8    0 yes (1.0000 0.0000) *
+##                    473) salary&gt;=1.04e+05 46   20 yes (0.5652 0.4348)  
+##                      946) salary&gt;=1.24e+05 38   14 yes (0.6316 0.3684)  
+##                       1892) balance&gt;=1.49e+05 8    1 yes (0.8750 0.1250) *
+##                       1893) balance&lt; 1.49e+05 30   13 yes (0.5667 0.4333)  
+##                         3786) active=no 17    5 yes (0.7059 0.2941) *
+##                         3787) active=yes 13    5 no (0.3846 0.6154) *
+##                      947) salary&lt; 1.24e+05 8    2 no (0.2500 0.7500) *
+##                  237) salary&lt; 9.35e+04 31    8 no (0.2581 0.7419)  
+##                    474) salary&lt; 3.54e+04 9    4 yes (0.5556 0.4444) *
+##                    475) salary&gt;=3.54e+04 22    3 no (0.1364 0.8636) *
+##                119) age&lt; 39.5 387   88 no (0.2274 0.7726)  
+##                  238) balance&gt;=1.78e+05 16    5 yes (0.6875 0.3125) *
+##                  239) balance&lt; 1.78e+05 371   77 no (0.2075 0.7925)  
+##                    478) active=no 179   51 no (0.2849 0.7151)  
+##                      956) balance&gt;=1.26e+05 88   31 no (0.3523 0.6477)  
+##                       1912) credit_score&gt;=772 7    2 yes (0.7143 0.2857) *
+##                       1913) credit_score&lt; 772 81   26 no (0.3210 0.6790)  
+##                         3826) tenure&lt; 7.5 69   25 no (0.3623 0.6377)  
+##                           7652) credit_score&gt;=614 47   20 no (0.4255 0.5745)  
+##                            15304) credit_score&lt; 635 7    2 yes (0.7143 0.2857) *
+##                            15305) credit_score&gt;=635 40   15 no (0.3750 0.6250)  
+##                              30610) credit_score&gt;=665 29   13 no (0.4483 0.5517)  
+##                                61220) age&lt; 30.5 7    2 yes (0.7143 0.2857) *
+##                                61221) age&gt;=30.5 22    8 no (0.3636 0.6364)  
+##                                 122442) age&gt;=35.5 11    4 yes (0.6364 0.3636) *
+##                                 122443) age&lt; 35.5 11    1 no (0.0909 0.9091) *
+##                              30611) credit_score&lt; 665 11    2 no (0.1818 0.8182) *
+##                           7653) credit_score&lt; 614 22    5 no (0.2273 0.7727) *
+##                         3827) tenure&gt;=7.5 12    1 no (0.0833 0.9167) *
+##                      957) balance&lt; 1.26e+05 91   20 no (0.2198 0.7802) *
+##                    479) active=yes 192   26 no (0.1354 0.8646) *
+##           15) num_prod&gt;=1.5 744  105 no (0.1411 0.8589)  
+##             30) balance&gt;=2.39e+04 361   79 no (0.2188 0.7812)  
+##               60) active=no 187   52 no (0.2781 0.7219)  
+##                120) salary&gt;=4.72e+04 149   47 no (0.3154 0.6846)  
+##                  240) balance&lt; 1.39e+05 107   40 no (0.3738 0.6262)  
+##                    480) salary&lt; 1.89e+05 100   40 no (0.4000 0.6000)  
+##                      960) credit_score&lt; 582 21    8 yes (0.6190 0.3810) *
+##                      961) credit_score&gt;=582 79   27 no (0.3418 0.6582)  
+##                       1922) salary&lt; 5.7e+04 9    2 yes (0.7778 0.2222) *
+##                       1923) salary&gt;=5.7e+04 70   20 no (0.2857 0.7143)  
+##                         3846) salary&gt;=1.7e+05 10    4 yes (0.6000 0.4000) *
+##                         3847) salary&lt; 1.7e+05 60   14 no (0.2333 0.7667) *
+##                    481) salary&gt;=1.89e+05 7    0 no (0.0000 1.0000) *
+##                  241) balance&gt;=1.39e+05 42    7 no (0.1667 0.8333) *
+##                121) salary&lt; 4.72e+04 38    5 no (0.1316 0.8684) *
+##               61) active=yes 174   27 no (0.1552 0.8448)  
+##                122) balance&gt;=1.75e+05 7    3 yes (0.5714 0.4286) *
+##                123) balance&lt; 1.75e+05 167   23 no (0.1377 0.8623) *
+##             31) balance&lt; 2.39e+04 383   26 no (0.0679 0.9321) *
+```
+]
+  
+
+
+---
+
+# CART Resampling Profile
+
+&lt;img src="Part_3_Classification_files/figure-html/cart-plot-1.svg" width="60%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Update the Model?
+
+
+
+We could use less splits and possibly achieve about the same performance. Using `cp = 0.003272` results in 19 terminal nodes.
+
+
+```r
+cart_mod$results$cp[12]
+```
+
+```
+## [1] 0.00327
+```
+
+```r
+cart_smaller &lt;- update(cart_mod, param = list(cp = cart_mod$results$cp[12]))
+
+getTrainPerf(cart_smaller)
+```
+
+```
+##   TrainROC TrainSens TrainSpec method
+## 1    0.825     0.755      0.77  rpart
+```
+
+```r
+getTrainPerf(cart_mod)
+```
+
+```
+##   TrainROC TrainSens TrainSpec method
+## 1    0.828     0.753     0.744  rpart
+```
+
+
+  
+
+---
+
+# Individual Assessment Set ROC Curves
+
+.pull-left[
+ 
+
+```r
+cart_smaller %&gt;%
+  pluck("pred") %&gt;%
+  group_by(Resample) %&gt;% 
+  roc_curve(obs, yes) %&gt;%
+  ungroup() %&gt;% 
+  ggplot() +
+  aes(x = 1 - specificity, y = sensitivity, 
+      col = Resample, group = Resample) + 
+  geom_path(alpha = .5)  +
+  geom_abline(col = "red", alpha = .5, lty = 2) + 
+  theme(legend.position = "none")
+```
+
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/cart-inv-roc-plot-1.svg" width="100%" style="display: block; margin: auto;" /&gt;
+]
+  
+
+---
+
+# Classification Tree Average ROC Curve
+
+.pull-left[
+ 
+ROC curves will be created for each model so a convenience function will be used repeatedly to create an _approximate_ curve: 
+
+
+
+```r
+approx_roc_curve &lt;- function(x, label) {
+  x %&gt;%
+    pluck("pred") %&gt;%
+    roc_curve(obs, yes) %&gt;%
+    mutate(model = label)
+}
+approx_roc_curve(cart_smaller, "CART") %&gt;%
+  ggplot(aes(x = 1 - specificity, y = sensitivity)) +
+  geom_path()  +
+  geom_abline(col = "red", alpha = .5, lty = 2)
+```
+
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/cart-roc-plot-1.svg" width="100%" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Resampled Confusion Matrix
+
+.pull-left[
+Since there are 10 different assessment sets, separate confusion matrices can be constructed for each. 
+
+`train()` has its own `confusionMatrix()` method that can show aggregations of these matrices.
+
+By default, the overall rates are shown in each cell.  
+]
+.pull-right[
+
+```r
+confusionMatrix(cart_smaller)
+```
+
+```
+## Cross-Validated (10 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction  yes   no
+##        yes 15.4 18.3
+##        no   5.0 61.3
+##                             
+##  Accuracy (average) : 0.7672
+```
+]
+
+
+---
+
+# Variable Importance Scores &lt;img src="images/ggplot2.png" class="title-hex"&gt;
+
+.pull-left[
+CART tracks the decrease in impurity in the nodes when splits are made. 
+
+These can be aggregated over the tree to produce another general importance score. 
+
+`rpart` can also keep track of splits not used in the model (e.g. surrogate, completing) that can be used when there are missing predictor values. The `varImp()` method has options to turn these on/off. 
+
+Turning these off gives only the splits uses in the official tree. 
+
+]
+.pull-right[
+
+```r
+cart_imp &lt;- varImp(cart_smaller, scale = FALSE, 
+                   surrogates = FALSE, 
+                   competes = FALSE)
+ggplot(cart_imp) + xlab("")
+```
+
+&lt;img src="Part_3_Classification_files/figure-html/cart-imp-1.svg" width="75%" style="display: block; margin: auto;" /&gt;
+]
+
+
+---
+
+# Hands-On: Tell Me When to Stop
+
+The tree stops splitting when the number of data points in a node becomes to small (default value: 20). 
+
+Look at the `?rpart` documentation and determine what option controls this. 
+
+Try a few values with `train` to see if there is an effect. 
+
+<div class="countdown" id="timer_5cd19aad" style="right:0;bottom:0;">
+<code><span class="digits minutes">10</span><span class="digits colon">:</span><span class="digits seconds">00</span></code>
+</div>
+
+
+---
+layout: false
+class: inverse, middle, center
+
+# Bagging 
+
+
+---
+
+# Instability of Trees
+
+Many types of trees are _unstable_ in that they have high variance; if the data are slightly changed, a large impact can be seen on the structure of the model. 
+
+This is generally bad and might make you question the interpretability of trees. 
+
+For example, what happens if we were to build our model on bootstrap samples of the training set?
+
+In the three following plots, the maximum tree depth was capped at 5 to make the trees easier to visualize. The data [are simulated](http://appliedpredictivemodeling.com/blog/2013/4/11/a-classification-simulation-system).
+
+
+---
+
+# Bootstrap Sample #1
+
+&lt;img src="Part_3_Classification_files/figure-html/boot-cart-1-1.svg" width="55%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Bootstrap Sample #2
+
+&lt;img src="Part_3_Classification_files/figure-html/boot-cart-2-1.svg" width="55%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Bootstrap Sample #3
+
+&lt;img src="Part_3_Classification_files/figure-html/boot-cart-3-1.svg" width="55%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Lemonade from Lemons
+
+The _nice_ thing about this instability is that it makes trees great candidates for ensemble methods. 
+
+Since ensembles use multiple models, they are only effective when the constituent models are _diverse_; otherwise the same predictions are averaged. 
+
+Let's bag the CART trees by using bootstrap samples of the training set and growing the largest possible tree. 
+
+`caret` wraps `ipred::bagging()` using `method = "treebag"`. We will use the default ensemble size of 25 models.
+
+
+---
+layout: false
+
+&lt;img src="images/bagged_tree.svg" width="65%" style="display: block; margin: auto;" /&gt;
+
+
+
+---
+
+# Bagging CART Trees
+
+`method = "treebag"` can resample this model; there are no real tuning parameters. 
+
+.pull-left[
+
+```r
+set.seed(5515)
+cart_bag &lt;- train(
+	x = churn_train %&gt;% dplyr::select(-class), 
+	y = churn_train$class,
+	method = "treebag",
+	metric = "ROC",
+	trControl = ctrl
+)
+```
+
+]
+.pull-right[
+
+
+```r
+cart_bag
+```
+
+```
+## Bagged CART 
+## 
+## 7501 samples
+##   10 predictor
+##    2 classes: 'yes', 'no' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold) 
+## Summary of sample sizes: 6750, 6751, 6750, 6752, 6751, 6752, ... 
+## Addtional sampling using down-sampling
+## 
+## Resampling results:
+## 
+##   ROC    Sens   Spec 
+##   0.835  0.739  0.769
+```
+
+]
+
+---
+
+# While We Wait, Can I Interest You in Parallelism? 
+
+.pull-left[
+ 
+There is no real barrier to running these in parallel. 
+
+Can we benefit from splitting the fits up to run on multiple cores?
+
+These speed-ups can be very model- and data-dependent but this pattern generally holds. 
+
+Note that there is little incremental benefit to using more workers than physical cores on the computer. Use `parallel::detectCores(logical = FALSE)`.
+
+(A lot more details can be found in [this blog post](http://appliedpredictivemodeling.com/blog/2018/1/17/parallel-processing))
+
+]
+.pull-right[
+&lt;img src="Part_3_Classification_files/figure-html/par-plot-1.svg" width="75%" style="display: block; margin: auto;" /&gt;
+]
+
+
+---
+
+# Running in Parallel for `caret`
+
+.pull-left[
+To loop through the models and data sets, `caret` uses the [`foreach`](https://www.rdocumentation.org/packages/foreach) package, which can parallelize `for` loops.
+
+`foreach` has a number of _parallel backends_ which allow various technologies to be used in conjunction with the package.
+
+On CRAN, these are the "`do{X}`" packages, such as
+[`doAzureParallel`](https://github.com/Azure/doAzureParallel), 
+[`doFuture`](https://www.rdocumentation.org/packages/doFuture), [`doMC`](https://www.rdocumentation.org/packages/doMC), 
+[`doMPI`](https://www.rdocumentation.org/packages/doMPI), [`doParallel`](https://www.rdocumentation.org/packages/doParallel), [`doRedis`](https://www.rdocumentation.org/packages/doRedis), and [`doSNOW`](https://www.rdocumentation.org/packages/doSNOW).
+
+For example, `doMC` uses the `multicore` package, which forks processes to split computations (for unix and OS X). `doParallel` can be used for all operating systems.
+]
+.pull-right[
+To use parallel processing in `caret`, no changes are needed when calling `train()`. 
+
+The parallel technology must be _registered_ with `foreach` prior to calling `train()`:
+
+
+```r
+library(doParallel)
+cl &lt;- makeCluster(6)
+registerDoParallel(cl)
+
+# run `train()`...
+
+stopCluster(cl)
+```
+]
+
+
+---
+
+# Resampled Confusion Matrix
+
+
+
+```r
+confusionMatrix(cart_bag)
+```
+
+```
+## Cross-Validated (10 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction  yes   no
+##        yes 15.1 18.4
+##        no   5.3 61.3
+##                             
+##  Accuracy (average) : 0.7631
+```
+
+
+---
+
+# Bagged Classification Tree Average ROC Curve
+
+.pull-left[
+
+```r
+all_curves &lt;- 
+  approx_roc_curve(cart_smaller, "CART") %&gt;%
+  bind_rows(approx_roc_curve(cart_bag, "Bagged CART")) 
+
+ggplot(all_curves) +
+  aes(x = 1 - specificity, y = sensitivity, 
+      group = model, col = model) + 
+  geom_path()  +
+  geom_abline(col = "red", alpha = .5, lty = 2)
+```
+
+This is very unusual; the bagged model's curve is almost identical to curve for a single tree. 
+
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/bag-roc-plot-1.svg" width="100%" style="display: block; margin: auto;" /&gt;
+]
+
+
+---
+
+# Variable Importance Scores &lt;img src="images/ggplot2.png" class="title-hex"&gt;
+
+.pull-left[
+When bagging, the CART importances scores for each tree are aggregated across trees. 
+
+Many more predictors are used in this model. 
+
+]
+.pull-right[
+
+```r
+bag_imp &lt;- varImp(cart_bag, scale = FALSE)
+ggplot(bag_imp) + xlab("")
+```
+
+&lt;img src="Part_3_Classification_files/figure-html/bag-imp-1.svg" width="90%" style="display: block; margin: auto;" /&gt;
+]
+
+
+---
+
+# Hands-On: How Many Trees?
+
+As previously mentioned, `caret` uses `ipred::bagging()` to create the model. 
+
+Look at the help function to determine which `bagging()` argument controls the number of bootstraps.
+
+How can we make `train()` use a different value? (hint: `?train`)
+
+Does changing this affect the area under the ROC curve? 
+
+Take another 10 mins.
+
+<div class="countdown" id="timer_5cd19a07" style="right:0;bottom:0;">
+<code><span class="digits minutes">10</span><span class="digits colon">:</span><span class="digits seconds">00</span></code>
+</div>
+
+
+---
+
+# Other Ensemble Methods
+
+There are a variety of other methods for creating ensembles
+
+* **Random forests** are just like bagging but the trees are made more diverse by randomly sampling a subset of predictors to be used in each split. ([`ranger`](https://cran.r-project.org/web/packages/ranger/index.html))
+
+* **Boosting** fits a _sequence_ of trees and modifies the case-weights of each data point to increase diversity. ([`xgboost`](https://cran.r-project.org/web/packages/xgboost/index.html), [`C50`](https://topepo.github.io/C5.0/))
+
+* **Rotation forests** is PCA signal extraction on a random subset of the data prior to creating the trees. ([`rotationForest`](https://cran.r-project.org/web/packages/rotationForest/index.html))
+
+* Regression **committees** adjust the outcome data over a sequence of models. ([`Cubist`](https://topepo.github.io/Cubist/)) 
+
+* **Stacking** is an ensemble method where different types of models can be blended together through averaging. ([`caretEnsemble`](https://cran.r-project.org/web/packages/caretEnsemble/index.html))
+
+R has multiple implementations of these methods. 
+
+
+---
+layout: false
+class: inverse, middle, center
+
+#  Bayes' Rule
+
+
+---
+
+# Naive Bayes Models
+
+This classification model is motivated directly from statistical theory based on Bayes' Rule:
+
+`$$Pr[Class|Predictors] = \frac{Pr[Class]\times Pr[Predictors|Class]}{Pr[Predictors]} 
+= \frac{Prior\:\times\:Likelihood}{Evidence}$$`
+
+In English:
+
+&gt; Given our predictor data, what is the probability of each class? 
+
+The _prior_ is the prevalence that was mentioned earlier (e.g. the rate of customer churn profiles). This can be estimated or set. 
+
+Most of the action is in `Pr[Predictors|Class]`, which is based on the observed training set.
+
+Predictions are based on a blend of the training data and our _prior belief_ about the outcome... 
+
+
+
+---
+
+# So  Why is it Naive?
+
+Determining `\(Pr[Predictors|Class]\)` can be very difficult without strong assumptions because it measures the _joint probability_ of all of the predictors. 
+
+* For example, what is the correlation between a person's salary and their location? 
+
+To resolve this, **naive** Bayes assumes that all of the predictors are _independent_ and that their probabilities can be estimated separately. 
+
+The joint probability is then the product of all of the individual probabilities (an example follows soon). 
+
+This assumption is almost certainly bogus but the model tends to do well despite this. 
+
+
+---
+
+# The Effect of Independence
+
+The probability contours assume multivariate normality with different assumptions.  
+
+Suppose the red dot is a new sample. 
+
+&lt;img src="Part_3_Classification_files/figure-html/nb-indep-1.svg" width="60%" style="display: block; margin: auto;" /&gt;
+
+Probability of the red point: 0.0000066 (accurate) and 0.013 (inaccurate). 
+
+---
+
+# Conditional Densities for Each Class
+
+`\(Pr[Age|Class]\)`
+
+&lt;img src="Part_3_Classification_files/figure-html/nb-dens-1.svg" width="60%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Conditional Values for Numeric Predictors
+
+`\(Pr[Age =50|Class]\)`
+
+&lt;img src="Part_3_Classification_files/figure-html/nb-numeric-1.svg" width="60%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Conditional Probabilities for Categorical Predictors
+
+`\(Pr[Location|Class]\)`
+
+&lt;img src="Part_3_Classification_files/figure-html/nb-cat-1.svg" width="60%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Combining Predictor Scores with the Prior
+
+
+
+
+For a 50-year old French customer, their likelihood values were:
+
+* `\(Pr[Age = 50|Churn] \times Pr[Location=France|Churn]\)` = 0.034 x 0.393 = 0.0132
+
+* `\(Pr[Age = 50|No\: Churn] \times Pr[Location=France|No\: Churn]\)` =0.008 x 0.526 = 0.0044
+
+However, when these are combined with the _prior probability_ for each class, the _relative probabilities_ show:
+
+
+* `\(Pr[Predictors|Churn] \times Pr[Churn]\)` = 0.0132 x 0.204 = 0.00269
+
+* `\(Pr[Predictors|No\: Churn] \times Pr[No\: Churn]\)` = 0.0044 x 0.796 = 0.00348
+
+We don't need to compute the evidence; we can just normalize these values to add up to 1. 
+
+The results is that the _posterior probability_ that this person will churn  is 43.6%.
+
+
+---
+
+# Pros and Cons
+
+.pull-left[
+Good: 
+
+* This model can be very quickly trained (and theoretically in parallel). 
+
+* Once trained, the prediction is basically a look-up table (i.e. fast). 
+
+* Nonlinear class boundaries can be generated. 
+
+]
+.pull-right[
+Bad:
+
+* Linearly diagonal boundaries can be difficult.
+
+* With many predictors, the class probabilities become poorly calibrated and U-shaped with most values near zero or one. 
+]
+
+
+---
+
+# U-Shaped Class Probability Distributions
+
+.pull-left[
+A completely non-informative data set was simulated using the naive assumption. 
+
+The training set has 500 data points over two classes and 450 predictors. 
+
+When a model is fit with 10 predictors, the distribution of the class probabilities gives us shapes that we would expect.
+  
+What happens when the number of predictors becomes larger? 
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/normal-shape-1.svg" width="90%" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# U-Shaped Class Probability Distributions
+
+
+
+
+&lt;img src="bayes.gif" width="45%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Naive Bayes Data Preparations
+
+If dummy variables have been made from a factor, R will think that these are _quantitative_ variables and try to compute a density function. We want it to appropriately compute frequency distributions (i.e. contingency tables). 
+
+Not by coincidence, there is a recipe step available to convert numeric binary data into factors: 
+ 
+
+```r
+no_dummies &lt;- 
+  recipe(class ~ ., data = churn_train) %&gt;%
+	# step_bin2factor(dummy_var_1, dummy_var_2) %&gt;%  &lt;- the sauce     
+	step_zv(all_predictors())
+```
+
+We will use basic defaults for the tuning parameters: 
+
+
+```r
+nb_grid &lt;- expand.grid(usekernel = TRUE, fL = 0, adjust = 1)
+```
+
+---
+
+# Naive Bayes Training
+
+
+```r
+set.seed(5515)
+nb_mod &lt;- train(
+	no_dummies,
+	data = churn_train,
+	method = "nb",
+	metric = "ROC",
+	tuneGrid = nb_grid,
+	trControl = ctrl
+)
+```
+
+Some warnings: `## Warning in FUN(X[[i]], ...): Numerical 0 probability for all classes with observation 1`
+
+This is due to the poorly calibrated probabilities although the warning is a bit misleading. This issue does not generally affect performance and can be ignored. 
+
+
+---
+
+# Naive Bayes Resampling Profile
+
+
+```r
+nb_mod
+```
+
+```
+## Naive Bayes 
+## 
+## 7501 samples
+##   10 predictor
+##    2 classes: 'yes', 'no' 
+## 
+## Recipe steps: zv 
+## Resampling: Cross-Validated (10 fold) 
+## Summary of sample sizes: 6750, 6751, 6750, 6752, 6751, 6752, ... 
+## Addtional sampling using down-sampling
+## 
+## Resampling results:
+## 
+##   ROC    Sens   Spec 
+##   0.844  0.694  0.834
+## 
+## Tuning parameter 'fL' was held constant at a value of 0
+## Tuning parameter 'usekernel' was held constant at
+##  a value of TRUE
+## Tuning parameter 'adjust' was held constant at a value of 1
+```
+
+
+---
+
+# Three ROC Curves
+
+
+
+.pull-left[
+
+```r
+all_curves &lt;- 
+  all_curves %&gt;%
+  bind_rows(approx_roc_curve(nb_mod, "Naive Bayes"))
+
+ggplot(all_curves) +
+  aes(x = 1 - specificity, y = sensitivity, 
+      group = model, col = model) + 
+  geom_path()  +
+  geom_abline(col = "red", alpha = .5, lty = 2)
+```
+]
+.pull-right[
+
+&lt;img src="Part_3_Classification_files/figure-html/nb-roc-plot-1.svg" width="100%" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Test Set Results
+
+
+
+```r
+test_res &lt;- churn_test %&gt;%
+	dplyr::select(class) %&gt;%
+	mutate(
+		prob = predict(nb_mod, churn_test, type = "prob")[, "yes"],
+		pred = predict(nb_mod, churn_test)
+	)
+roc_auc(test_res, class, prob)
+```
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 roc_auc binary         0.844
+```
+
+```r
+getTrainPerf(nb_mod)
+```
+
+```
+##   TrainROC TrainSens TrainSpec method
+## 1    0.844     0.694     0.834     nb
+```
+
+
+---
+
+# Test Set ROC Curve
+
+.pull-left[
+
+```r
+test_roc &lt;- roc_curve(test_res, class, prob)
+```
+
+```r
+ggplot(test_roc) +
+  aes(x = 1 - specificity, y = sensitivity) + 
+  geom_path()  +
+  geom_abline(col = "red", alpha = .5, lty = 2)
+```
+]
+.pull-right[
+&lt;img src="Part_3_Classification_files/figure-html/test-roc-1.svg" width="90%" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Test Set Class Probabilities
+
+
+```r
+ggplot(test_res, aes(x = prob)) + geom_histogram(binwidth = .04) + facet_wrap( ~ class) +
+  xlab("Pr[Churn]")
+```
+
+&lt;img src="Part_3_Classification_files/figure-html/test-probs-1.svg" width="65%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Confusion Matrix
+
+.pull-left[
+
+```r
+confusionMatrix(
+  data = test_res$pred, 
+  reference = test_res$class
+)
+```
+]
+.pull-right[
+
+.code60[
+
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  yes   no
+##        yes  350  338
+##        no   159 1652
+##                                         
+##                Accuracy : 0.801         
+##                  95% CI : (0.785, 0.817)
+##     No Information Rate : 0.796         
+##     P-Value [Acc &gt; NIR] : 0.285         
+##                                         
+##                   Kappa : 0.458         
+##  Mcnemar's Test P-Value : 1.41e-15      
+##                                         
+##             Sensitivity : 0.688         
+##             Specificity : 0.830         
+##          Pos Pred Value : 0.509         
+##          Neg Pred Value : 0.912         
+##              Prevalence : 0.204         
+##          Detection Rate : 0.140         
+##    Detection Prevalence : 0.275         
+##       Balanced Accuracy : 0.759         
+##                                         
+##        'Positive' Class : yes           
+## 
+```
+
+]
+
+]
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightLanguage": "R",
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+});
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

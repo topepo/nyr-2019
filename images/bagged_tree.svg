@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="274 163.16057 1050 805.1807" width="1050" height="805.1807">
+  <defs>
+    <font-face font-family="Helvetica Neue" font-size="16" panose-1="2 0 5 3 0 0 0 2 0 4" units-per-em="1000" underline-position="-100" underline-thickness="50" slope="0" x-height="517" cap-height="714" ascent="951.9958" descent="-212.99744" font-weight="400">
+      <font-face-src>
+        <font-face-name name="HelveticaNeue"/>
+      </font-face-src>
+    </font-face>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-9 -4 10 8" markerWidth="10" markerHeight="8" color="black">
+      <g>
+        <path d="M -8 0 L 0 3 L 0 -3 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <metadata> Produced by OmniGraffle 7.10.2 
+    <dc:date>2019-05-06 18:32:01 +0000</dc:date>
+  </metadata>
+  <g id="Canvas_1" stroke-dasharray="none" stroke="none" fill="none" stroke-opacity="1" fill-opacity="1">
+    <title>Canvas 1</title>
+    <g id="Canvas_1: Layer 1">
+      <title>Layer 1</title>
+      <g id="Graphic_2">
+        <ellipse cx="857.25" cy="233.41057" rx="71.2501138505101" ry="69.7501114536573" fill="white"/>
+        <ellipse cx="857.25" cy="233.41057" rx="71.2501138505101" ry="69.7501114536573" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(805.25 223.41057)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="24.296" y="15">All Data</tspan>
+        </text>
+      </g>
+      <g id="Graphic_5">
+        <path d="M 1118.75 362.75 L 1190.7925 410.94613 L 1163.2748 488.92887 L 1074.2252 488.92887 L 1046.7075 410.94613 Z" fill="#c0c1fa"/>
+        <path d="M 1118.75 362.75 L 1190.7925 410.94613 L 1163.2748 488.92887 L 1074.2252 488.92887 L 1046.7075 410.94613 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(1063.15 429.475)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="30.264" y="15">Testing</tspan>
+        </text>
+      </g>
+      <g id="Graphic_7">
+        <rect x="683.375" y="561.8394" width="170" height="79.5" fill="white"/>
+        <rect x="683.375" y="561.8394" width="170" height="79.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(688.375 591.5894)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="37.616" y="15">Resample 2</tspan>
+        </text>
+      </g>
+      <g id="Graphic_13">
+        <ellipse cx="771.875" cy="741.5894" rx="88.5001414143178" ry="39.7500635166003" fill="#f4be47"/>
+        <ellipse cx="771.875" cy="741.5894" rx="88.5001414143178" ry="39.7500635166003" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(706.075 731.5894)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="36.32" y="15">Analysis</tspan>
+        </text>
+      </g>
+      <g id="Line_16">
+        <line x1="770.6339" y1="691.945" x2="769.36875" y2="641.3394" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_21">
+        <line x1="1065.8683" y1="386.9256" x2="914.2108" y2="275.3261" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_22">
+        <path d="M 770.25 362.75 L 842.2925 410.94613 L 814.7748 488.92887 L 725.7252 488.92887 L 698.2075 410.94613 Z" fill="#f4be47"/>
+        <path d="M 770.25 362.75 L 842.2925 410.94613 L 814.7748 488.92887 L 725.7252 488.92887 L 698.2075 410.94613 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(714.65 429.475)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="27.744" y="15">Training</tspan>
+        </text>
+      </g>
+      <g id="Line_23">
+        <line x1="796.2283" y1="368.38" x2="828.4054" y2="297.20974" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_24">
+        <line x1="768.9047" y1="551.94" x2="769.5769" y2="488.92887" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_30">
+        <rect x="278" y="561.8394" width="170" height="79.5" fill="white"/>
+        <rect x="278" y="561.8394" width="170" height="79.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(283 591.5894)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="37.616" y="15">Resample 1</tspan>
+        </text>
+      </g>
+      <g id="Graphic_29">
+        <ellipse cx="363" cy="741.5894" rx="88.5001414143178" ry="39.7500635166003" fill="#f4be47"/>
+        <ellipse cx="363" cy="741.5894" rx="88.5001414143178" ry="39.7500635166003" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(297.2 731.5894)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="36.32" y="15">Analysis</tspan>
+        </text>
+      </g>
+      <g id="Line_27">
+        <line x1="363" y1="691.9394" x2="363" y2="641.3394" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_25">
+        <line x1="457.0897" y1="560.98473" x2="712.2893" y2="450.85257" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_36">
+        <rect x="1150" y="550.5" width="170" height="79.5" fill="white"/>
+        <rect x="1150" y="550.5" width="170" height="79.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(1155 580.25)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="36.584" y="15">Resample B</tspan>
+        </text>
+      </g>
+      <g id="Graphic_35">
+        <ellipse cx="1235" cy="741.5894" rx="88.5001414143178" ry="39.7500635166003" fill="#f4be47"/>
+        <ellipse cx="1235" cy="741.5894" rx="88.5001414143178" ry="39.7500635166003" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(1169.2 731.5894)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="36.32" y="15">Analysis</tspan>
+        </text>
+      </g>
+      <g id="Line_33">
+        <line x1="1235" y1="691.9394" x2="1235" y2="630" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_31">
+        <line x1="1140.6668" y1="556.87856" x2="829.6252" y2="446.8441" marker-start="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_38">
+        <ellipse cx="361.53706" cy="844.2153" rx="6.18253200295763" ry="5.1650449280385" fill="#a5a5a5"/>
+        <ellipse cx="361.53706" cy="844.2153" rx="6.18253200295763" ry="5.1650449280385" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_39">
+        <rect x="324" y="878.9244" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="324" y="878.9244" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_40">
+        <ellipse cx="390.0304" cy="884.0894" rx="6.18253200295763" ry="5.16504492803844" fill="lime"/>
+        <ellipse cx="390.0304" cy="884.0894" rx="6.18253200295763" ry="5.16504492803844" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_41">
+        <rect x="412.07246" y="913.2202" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="412.07246" y="913.2202" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_42">
+        <rect x="364.2251" y="913.2202" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="364.2251" y="913.2202" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_43">
+        <line x1="334.244" y1="878.9244" x2="358.14186" y2="848.5331" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_44">
+        <line x1="386.8606" y1="879.6535" x2="364.7069" y2="848.6513" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_45">
+        <line x1="373.36287" y1="913.2202" x2="387.3634" y2="888.7507" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_46">
+        <line x1="414.0043" y1="913.2202" x2="393.53373" y2="888.3463" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_64">
+        <ellipse cx="772.7295" cy="844.2153" rx="6.18253200295771" ry="5.1650449280385" fill="#ff4040"/>
+        <ellipse cx="772.7295" cy="844.2153" rx="6.18253200295771" ry="5.1650449280385" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_63">
+        <rect x="794.37085" y="878.9244" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="794.37085" y="878.9244" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_62">
+        <ellipse cx="743" cy="884.0894" rx="6.18253200295761" ry="5.16504492803844" fill="#999"/>
+        <ellipse cx="743" cy="884.0894" rx="6.18253200295761" ry="5.16504492803844" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_61">
+        <ellipse cx="759.25" cy="923.2153" rx="6.18253200295767" ry="5.16504492803856" fill="blue"/>
+        <ellipse cx="759.25" cy="923.2153" rx="6.18253200295767" ry="5.16504492803856" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_60">
+        <rect x="720.5675" y="918.0503" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="720.5675" y="918.0503" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_59">
+        <line x1="796.94925" y1="878.9244" x2="775.844" y2="848.6786" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_58">
+        <line x1="746.2695" y1="879.7043" x2="769.4601" y2="848.6004" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_57">
+        <line x1="728.8952" y1="918.0503" x2="740.9729" y2="888.9702" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_56">
+        <line x1="757.2229" y1="918.3346" x2="745.0271" y2="888.9702" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_72">
+        <rect x="769.3175" y="957.5112" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="769.3175" y="957.5112" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_71">
+        <rect x="736.8175" y="957.5112" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="736.8175" y="957.5112" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_70">
+        <line x1="745.1452" y1="957.5112" x2="759.25" y2="923.5503" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_69">
+        <line x1="773.3548" y1="957.5112" x2="759.25" y2="923.5503" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_78">
+        <ellipse cx="1230.6991" cy="849.7936" rx="6.18253200295761" ry="5.16504492803862" fill="blue"/>
+        <ellipse cx="1230.6991" cy="849.7936" rx="6.18253200295761" ry="5.16504492803862" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_77">
+        <rect x="1252.7412" y="878.9244" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="1252.7412" y="878.9244" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_76">
+        <rect x="1204.8938" y="878.9244" width="12.365044" height="10.330073" fill="black"/>
+        <rect x="1204.8938" y="878.9244" width="12.365044" height="10.330073" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_74">
+        <line x1="1214.0316" y1="878.9244" x2="1228.0321" y2="854.4549" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_73">
+        <line x1="1254.673" y1="878.9244" x2="1234.2024" y2="854.0505" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+    </g>
+  </g>
+</svg>
