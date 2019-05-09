@@ -21,6 +21,35 @@ theme_set(thm)
 library(AmesHousing)
 ames <- make_ames()
 
+
+ggplot(ames, aes(x = Year_Built, y = Sale_Price)) + 
+  geom_point(alpha = 0.3) + 
+  scale_y_log10() + 
+  geom_smooth()
+
+ggplot(ames, aes(x = Lot_Area, y = Sale_Price)) +
+  geom_point(alpha = 0.3) +
+  scale_y_log10() +
+  scale_x_log10() + 
+  geom_smooth()
+
+ggplot(ames, aes(x = Alley, y = Sale_Price))  +
+  scale_y_log10() + 
+  geom_boxplot()
+
+ggplot(ames, aes(x = Year_Built, y = Sale_Price)) + 
+  geom_point(alpha = 0.3) + 
+  scale_y_log10() + 
+  geom_smooth() + 
+  facet_wrap(~ Alley)
+
+ames %>% 
+  dplyr::select(Sale_Price, Alley, Neighborhood, Enclosed_Porch) %>% 
+  tidyr::gather(level, value, -Sale_Price) %>% 
+  dplyr::group_by(level, value) %>% 
+  dplyr::summarise(mean = mean(Sale_Price), 
+                   max = max(Sale_Price))
+
 ## -----------------------------------------------------------------------------
 
 library(caret)
@@ -94,12 +123,25 @@ library(purrr)
 holdout_results <- 
   lm_fit %>% 
   pluck("pred") %>% 
+  mutate(resid = obs - pred) %>% 
   arrange(rowIndex) %>% 
   bind_cols(ames_train)
 
 holdout_results %>% 
   dplyr::select(obs, pred, Resample, Neighborhood, Alley) %>% 
   dplyr::slice(1:7)
+
+
+ggplot(holdout_results, aes(y = resid, x = Second_Flr_SF)) + 
+  geom_point(alpha = .5) 
+
+ggplot(holdout_results, 
+       aes(y = resid, x = Year_Built, col = Central_Air)) + 
+  geom_point(alpha = .5)+ 
+  facet_wrap(~ Central_Air) + 
+  geom_smooth(se = FALSE, col = "black")
+
+
 
 ## -----------------------------------------------------------------------------
 
